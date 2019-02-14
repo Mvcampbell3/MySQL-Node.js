@@ -10,6 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/Mvcampbell3/MySQL-Node.js.git"
   },
+  "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
@@ -18,6 +19,7 @@
   "homepage": "https://github.com/Mvcampbell3/MySQL-Node.js#readme",
   "dependencies": {
     "inquirer": "^6.2.2",
-    "mysql": "^2.16.0"
+    "mysql": "^2.16.0",
+    "table": "^5.2.3"
   }
 }
