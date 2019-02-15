@@ -51,6 +51,7 @@ let corporate = {
                     corporate.displayInventory(corporate.addInventory);
                     break;
                 case "Add New Product":
+                    corporate.newProductInformation();
                     break;
                 case "Exit":
                     con.end()
@@ -223,36 +224,52 @@ let corporate = {
     },
 
     newProductInformation: function () {
-        var productName;
-        var productDepartment;
-        var productPrice;
-        var productCost;
-        var productQuantity;
         
-        inquirer.prompt({
-            type: "input",
-            name: "name",
-            message: "What is the name of the new product?"
-        }).then(answer => {
-            ProductName = answer.name;
-            inquirer.prompt({
+        inquirer.prompt([
+            {
+                type: "input",
+                name: "name",
+                message: "What is the name of the new product?"
+            },
+            {
                 type: "input",
                 name: "department",
-                message: "In what department will " + productName + " going to be sold?"
-            }).then(answer => {
-                productDepartment = answer.department;
-                inquirer.prompt({
-                    type: "input",
-                    name: "price",
-                    message: "What is the selling price of " + productName + "?"
-                }).then(answer => {
-                    productPrice = answer.price;
-                    inquirer.prompt({
-                        type: "input",
-                        name: "cost",
-                        message: "What is the COGS"
-                    })
-                })
+                message: "Which department will sell the new product?"
+            },
+            {
+                type: "input",
+                name: "price",
+                message: "What will be the sale price of the new product?"
+            },
+            {
+                type: "input",
+                name: "cost",
+                message: "What will the new product cost per unit for inventory?"
+            },
+            {
+                type: "input",
+                name: "quantity",
+                message: "Finally, how many units would you like to purchase for inventory?"
+            }
+        ]).then(answer => {
+            let tellMe = {
+                product_name: answer.name,
+                department_name: answer.department,
+                price: answer.price,
+                cost: answer.cost,
+                quantity: answer.quantity
+            };
+
+            con.query("INSERT INTO products set?",{
+                product_name: answer.name,
+                department_name: answer.department,
+                price: answer.price,
+                cost: answer.cost,
+                quantity: answer.quantity
+            }, (err, response) => {
+                if (err) throw err;
+                console.log(chalk.cyan("\nYou have successfully added " + answer.name + " to the store inventory!\n"));
+                corporate.returnMenuPrompt();
             })
         })
     },
@@ -273,9 +290,6 @@ let corporate = {
             return "UPDATE products SET quantity = " + number + " WHERE item_id = " + id;
         },
 
-        newProduct: function (name, department, price, cost, quantity) {
-            return "INSERT INTO products(product_name, department_name, price, cost, quantity) VALUES (" + name + ", " + department + ", " + price + ", " + cost + ", " + quantity + ");"
-        }
     }
 
 }
