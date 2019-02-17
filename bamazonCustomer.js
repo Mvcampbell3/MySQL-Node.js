@@ -8,7 +8,7 @@ const chalk = require("chalk");
 const con = database.createConnection({
     host: 'localhost',
     user: "root",
-    password: "Jackson325!",
+    password: "surfboard",
     database: "bamazon"
 });
 
@@ -22,43 +22,27 @@ let store = {
     loadMenu: function () {
         con.connect(err => {
             if (err) throw err;
-            con.query(this.sql.selectAll, (err, result) => {
-                if (err) throw err;
+           
+            store.backMenu();
 
-                let data = [
-                    [chalk.yellow("Product ID"), chalk.yellow("Product Name"), chalk.yellow("Department"), chalk.yellow("Price"), chalk.yellow("Quantity")],
-                ]
-
-                result.forEach(one => {
-                    data.push([chalk.white(one.item_id), chalk.white(one.product_name), chalk.white(one.department_name), chalk.white("$" + one.price.toFixed(2)), chalk.white(one.quantity)])
-                });
-
-                result.map(meatball => this.idArray.push(meatball.item_id));
-
-
-                let output = table(data);
-
-                console.log(chalk.green(output));
-
-                this.selectInventory();
-            })
         });
     },
-
-
-    // If want to add press 0 to exit the store, this is where we would do it
-    // Need to do nothing with the error, or maybe throw it after we see if they pressed 0
-    // Then run con.end and a goodbye message.
-    // This all depends on what happens when we intentionally cause an error.
-    // Well that didn't work
-    // Yo, order of operations man, order of operations...
+   
     selectInventory: function () {
         inquirer.prompt({
             type: "input",
             name: "which",
-            message: chalk.cyan("Which product would you like to purchase today? (Enter Product ID number, 0 will exit the store)")
+            message: chalk.cyan("Which product would you like to purchase today? (Enter Product ID number, 0 will exit the store)"),
+            validate: (value) => {
+                testArray = this.idArray;
+                testArray.push(0);
+                if (isNaN(value) == true || value == "" || testArray.indexOf(parseFloat(value)) == -1) {
+                    return "Please enter either 0 or valid Product ID"
+                };
+                return true;
+            }
         }).then(answer => {
-            if (answer.which == 0){
+            if (answer.which == 0) {
                 inquirer.prompt({
                     type: "confirm",
                     name: "leave",
@@ -73,34 +57,30 @@ let store = {
                     }
                 });
 
-            } else if (this.idArray.indexOf(parseFloat(answer.which)) === -1){
-                console.log(chalk.yellow("\nYou must enter in the ID number of the product you would like to view\n"));
-                this.returnMenuPrompt();
-
             } else {
-                con.query(this.sql.selectOne(answer.which), (err, result) => {
+                con.query("SELECT * FROM products WHERE item_id =?",[answer.which], (err, result) => {
                     if (err) throw err;
                     if (result[0].quantity > 0) {
                         let data1 = [
                             ["Product ID", "Product Name", "Department", "Price", "Quantity"],
                         ];
                         data1.push([result[0].item_id, result[0].product_name, result[0].department_name, "$" + result[0].price.toFixed(2), result[0].quantity]);
-        
+
                         let output1 = table(data1);
-        
+
                         console.log(chalk.blue(output1));
-        
-        
+
+
                         this.purchaseQuantity(answer.which)
                     } else {
                         console.log(chalk.yellow("\nThere is not enough in stock, try again later!\n"));
                         this.returnMenuPrompt();
                     }
-                    
-    
+
+
                 })
             }
-            
+
         })
     },
 
@@ -109,22 +89,26 @@ let store = {
     // how much they would like to buy.
     // carries info about the item along with it into updateQuantity function
     purchaseQuantity: function (id) {
-        con.query(this.sql.selectOne(id), (err, result) => {
+        con.query("SELECT * FROM products WHERE item_id = ?",[id], (err, result) => {
             if (err) throw err;
 
             inquirer.prompt({
                 type: "input",
                 name: "quantity",
-                message: chalk.cyan("How many " + result[0].product_name + " units would you like, there are "+result[0].quantity+ " left (0 returns you to store menu)")
-
+                message: chalk.cyan("How many " + result[0].product_name + " units would you like, there are " + result[0].quantity + " left (0 returns you to store menu)"),
+                validate: (value) => {
+                    if (isNaN(value) == true || value == "" ) {
+                        return "Please enter a number"
+                    } else if (parseFloat(value) > result[0].quantity) {
+                        return "There is only " + result[0].quantity + " " + result[0].product_name + " left in stock!"
+                    }
+                    return true
+                }
             }).then(answer => {
-                if (answer.quantity > result[0].quantity) {
-                    console.log(chalk.yellow("\nMust not be more units than in stock!\n"));
-                    this.selectQuantity(result[0].item_id)
-                } else if (answer.quantity == 0) {
+                if (answer.quantity == 0) {
                     this.backMenu();
                 } else {
-                    this.updateQuantity(result[0].item_id, result[0].quantity, answer.quantity, result[0].price, result[0].product_name);
+                    this.updateQuantity(result[0].item_id, result[0].quantity, answer.quantity, result[0].price, result[0].product_name, result[0].sold_units);
                 }
             })
         })
@@ -134,10 +118,12 @@ let store = {
     // Takes the remainder of the stock and updates the database quantity
     // Tells the user how much their purchase was
     // Asks them if they want to continue shopping
-    updateQuantity: function (id, store, buy, price, name) {
-        store = store - buy;
-        let sale = "UPDATE products SET quantity = " + store + " WHERE item_id = " + id;
-        con.query(sale, (err, result) => {
+    updateQuantity: function (id, store, buy, price, name, sold) {
+        store = parseFloat(store) - parseFloat(buy);
+        sold = parseFloat(sold) + parseFloat(buy)
+        let sale = "UPDATE products SET quantity = ?, sold_units = ? WHERE item_id = ?"
+        
+        con.query(sale, [store, sold, id], (err, result) => {
             if (err) throw err;
 
             console.log(chalk.green("\nThe total of your purchase is $" + (parseFloat(buy) * parseFloat(price)).toFixed(2)))
@@ -179,9 +165,13 @@ let store = {
                 data.push([chalk.white(one.item_id), chalk.white(one.product_name), chalk.white(one.department_name), chalk.white("$" + one.price.toFixed(2)), chalk.white(one.quantity)])
             });
 
+            this.idAarray = []
+
+            result.map(meatball => this.idArray.push(meatball.item_id));
+
             let output = table(data);
 
-            console.log(chalk.green("\n"+output));
+            console.log(chalk.green("\n" + output));
 
             this.selectInventory();
         })
@@ -192,9 +182,7 @@ let store = {
 
         selectAll: "SELECT * FROM products",
 
-        selectOne: function (id) {
-            return "SELECT * FROM products WHERE item_id = " + id;
-        },
+        
 
         // Do not use unless you mean it!
         deleteTable: "DROP TABLE products",
