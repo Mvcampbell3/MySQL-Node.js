@@ -135,12 +135,24 @@ function makeDepartment() {
         {
             type: "input",
             name: "name",
-            message: "What would you like to name the new Department?"
+            message: "What would you like to name the new Department?",
+            validate: (value) => {
+                if (value === "") {
+                    return "Must enter name of new department"
+                }
+                return true;
+            }
         },
         {
             type: "input",
             name: "overhead",
-            message: "How much overhead does this new department have?"
+            message: "How much overhead does this new department have?",
+            validate: (value) => {
+                if (value === "" || isNaN(value) === true) {
+                    return "Must enter a number amount for the overhead cost"
+                };
+                return true;
+            }
         }
     ]).then(answer => {
         console.log(answer.name, answer.overhead);
@@ -149,7 +161,8 @@ function makeDepartment() {
             over_head_costs: answer.overhead
         }, (err, result) => {
             if (err) throw err;
-            console.log("Great success")
+            console.log("Great success");
+            returnMenuPrompt();
         })
     })
 }
