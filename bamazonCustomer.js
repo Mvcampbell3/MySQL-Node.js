@@ -122,8 +122,7 @@ let store = {
         quantity = parseFloat(quantity) - parseFloat(buy);
         sold = parseFloat(sold) + parseFloat(buy);
         let amtMade = parseFloat(sold) * parseFloat(price);
-        profit = parseInt(profit) + parseInt(amtMade).toFixed(2);
-        // money = profit.toFixed(2)
+        profit = (parseFloat(profit) + parseFloat(amtMade)).toFixed(2);
         let sale = "UPDATE products SET quantity = ?, sold_units = ?, profit = ? WHERE item_id = ?"
         
         con.query(sale, [quantity, sold, profit, id], (err, result) => {

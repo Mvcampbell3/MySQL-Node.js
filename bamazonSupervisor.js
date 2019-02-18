@@ -4,7 +4,6 @@ const { table } = require("table")
 const chalk = require("chalk");
 const clear = require("clear");
 
-// connect variable, might move to inside object but it's fine out here in the wild for now
 const con = database.createConnection({
     host: 'localhost',
     user: "root",
@@ -14,7 +13,6 @@ const con = database.createConnection({
 
 con.connect(err => {
     if (err) throw err;
-    // console.log("working")
     loadMenu();
 });
 
@@ -30,19 +28,18 @@ function loadMenu() {
     inquirer.prompt({
         type: "list",
         name: "menu",
-        message: chalk.cyan("What would you like to do boss?\n\n"),
+        message: chalk.cyan("What would you like to do boss?\n"),
         choices: [
-            "View Product Sales by Department\n",
-            "Create New Department\n",
+            "View Product Sales by Department",
+            "Create New Department",
             "Exit"
         ]
     }).then(answer => {
         switch (answer.menu) {
-            case "View Product Sales by Department\n":
+            case "View Product Sales by Department":
                 viewDepartments();
                 break;
-            case "Create New Department\n":
-                // console.log("Still working on that Chief");
+            case "Create New Department":
                 makeDepartment();
                 break;
             case "Exit":
@@ -58,23 +55,51 @@ function loadMenu() {
 
 function viewDepartments() {
     clear();
-    con.query("SELECT departments.department_id, departments.department_name, departments.over_head_costs, SUM(products.profit) AS profit FROM products Right JOIN departments ON products.department_name = departments.department_name GROUP BY departments.department_name ORDER BY departments.department_id", (err, result) => {
-        if (err) throw err;
-        // console.log(result.map(one => one.profit));
-        // console.log(result)
-        let data = [["Department ID", "Department Name", "Total Dept. Sales", "Over Head Costs", "Profit Margin"]];
+    inquirer.prompt({
+        type: "list",
+        name: "order",
+        message: chalk.cyan("What would you like to order this list by?"),
+        choices: [
+            "Department ID",
+            "Total Sales",
+            "Overhead Costs",
+        ]
+    }).then(answer => {
+        
+        let orderBy ="";
 
-        result.forEach(one => {
-            let margin = one.profit - one.over_head_costs;
-            // console.log(margin);
-            data.push([chalk.white(one.department_id), chalk.white(one.department_name), highlight(one.profit || 0), chalk.red(one.over_head_costs), highlight(margin.toFixed(2))])
+        switch (answer.order) {
+            case "Department ID":
+                orderBy = "departments.department_id";
+                break;
+            case "Total Sales":
+                orderBy = "SUM(products.profit) DESC"
+                break;
+            case "Overhead Costs":
+                orderBy = "departments.over_head_costs DESC"
+                break;
+            default:
+                console.log("You should not be able to get to this point")
+        }
 
-        });
+        con.query("SELECT departments.department_id, departments.department_name, departments.over_head_costs, SUM(products.profit) AS profit FROM products Right JOIN departments ON products.department_name = departments.department_name GROUP BY departments.department_name ORDER BY " + orderBy, (err, result) => {
+            if (err) throw err;
 
-        let output = table(data);
-        console.log(output)
-        returnMenuPrompt();
+            let data = [["Department ID", "Department Name", "Total Dept. Sales", "Overhead Costs", "Profit Margin"]];
+    
+            result.forEach(one => {
+                let margin = one.profit - one.over_head_costs;
+                // console.log(margin);
+                data.push([chalk.white(one.department_id), chalk.white(one.department_name), highlight(one.profit || 0), chalk.red(one.over_head_costs), highlight(margin.toFixed(2))])
+    
+            });
+    
+            let output = table(data);
+            console.log(output)
+            returnMenuPrompt();
+        })
     })
+    
 };
 
 function returnMenuPrompt() {
@@ -97,7 +122,7 @@ function returnMenuPrompt() {
 function highlight(number) {
     if (number > 500) {
         return chalk.green(number)
-    } else if (number <= 500 && number > 200) {
+    } else if (number <= 500 && number > 100) {
         return chalk.yellow(number);
     } else {
         return chalk.red(number);
