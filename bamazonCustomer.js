@@ -108,7 +108,7 @@ let store = {
                 if (answer.quantity == 0) {
                     this.backMenu();
                 } else {
-                    this.updateQuantity(result[0].item_id, result[0].quantity, answer.quantity, result[0].price, result[0].product_name, result[0].sold_units);
+                    this.updateQuantity(result[0].item_id, result[0].quantity, answer.quantity, result[0].price, result[0].product_name, result[0].sold_units, result[0].profit);
                 }
             })
         })
@@ -118,15 +118,18 @@ let store = {
     // Takes the remainder of the stock and updates the database quantity
     // Tells the user how much their purchase was
     // Asks them if they want to continue shopping
-    updateQuantity: function (id, store, buy, price, name, sold) {
-        store = parseFloat(store) - parseFloat(buy);
-        sold = parseFloat(sold) + parseFloat(buy)
-        let sale = "UPDATE products SET quantity = ?, sold_units = ? WHERE item_id = ?"
+    updateQuantity: function (id, quantity, buy, price, name, sold, profit) {
+        quantity = parseFloat(quantity) - parseFloat(buy);
+        sold = parseFloat(sold) + parseFloat(buy);
+        let amtMade = parseFloat(sold) * parseFloat(price);
+        profit = parseInt(profit) + parseInt(amtMade).toFixed(2);
+        // money = profit.toFixed(2)
+        let sale = "UPDATE products SET quantity = ?, sold_units = ?, profit = ? WHERE item_id = ?"
         
-        con.query(sale, [store, sold, id], (err, result) => {
+        con.query(sale, [quantity, sold, profit, id], (err, result) => {
             if (err) throw err;
 
-            console.log(chalk.green("\nThe total of your purchase is $" + (parseFloat(buy) * parseFloat(price)).toFixed(2)))
+            console.log(chalk.green("\nThe total of your purchase is $" + amtMade.toFixed(2)));
             console.log(chalk.cyan("\nEnjoy your order of " + buy + " " + name + "\n"));
             this.returnMenuPrompt();
         })
