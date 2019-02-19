@@ -2,6 +2,8 @@ const inquirer = require("inquirer");
 const database = require("mysql");
 const { table } = require("table")
 const chalk = require("chalk");
+const fs = require("fs");
+const clear = require("clear")
 
 const con = database.createConnection({
     host: 'localhost',
@@ -12,17 +14,19 @@ const con = database.createConnection({
 
 let store = {
 
+    robot: true,
+
     idArray: [],
 
     loadMenu: function () {
         con.connect(err => {
             if (err) throw err;
-           
+
             store.backMenu();
 
         });
     },
-   
+
     selectInventory: function () {
         inquirer.prompt({
             type: "input",
@@ -53,7 +57,8 @@ let store = {
                 });
 
             } else {
-                con.query("SELECT * FROM products WHERE item_id =?",[answer.which], (err, result) => {
+                clear();
+                con.query("SELECT * FROM products WHERE item_id =?", [answer.which], (err, result) => {
                     if (err) throw err;
                     if (result[0].quantity > 0) {
                         let data1 = [
@@ -80,7 +85,7 @@ let store = {
     },
 
     purchaseQuantity: function (id) {
-        con.query("SELECT * FROM products WHERE item_id = ?",[id], (err, result) => {
+        con.query("SELECT * FROM products WHERE item_id = ?", [id], (err, result) => {
             if (err) throw err;
 
             inquirer.prompt({
@@ -88,7 +93,7 @@ let store = {
                 name: "quantity",
                 message: chalk.cyan("How many " + result[0].product_name + " units would you like, there are " + result[0].quantity + " left (0 returns you to store menu)"),
                 validate: (value) => {
-                    if (isNaN(value) == true || value == "" ) {
+                    if (isNaN(value) == true || value == "") {
                         return "Please enter a number"
                     } else if (parseFloat(value) > result[0].quantity) {
                         return "There is only " + result[0].quantity + " " + result[0].product_name + " left in stock!"
@@ -106,19 +111,81 @@ let store = {
     },
 
     updateQuantity: function (id, quantity, buy, price, name, sold, profit) {
-        quantity = parseFloat(quantity) - parseFloat(buy);
-        sold = parseFloat(sold) + parseFloat(buy);
-        let amtMade = parseFloat(sold) * parseFloat(price);
-        profit = (parseFloat(profit) + parseFloat(amtMade)).toFixed(2);
-        let sale = "UPDATE products SET quantity = ?, sold_units = ?, profit = ? WHERE item_id = ?"
-        
-        con.query(sale, [quantity, sold, profit, id], (err, result) => {
-            if (err) throw err;
+        clear();
 
-            console.log(chalk.green("\nThe total of your purchase is $" + amtMade.toFixed(2)));
-            console.log(chalk.cyan("\nEnjoy your order of " + buy + " " + name + "\n"));
-            this.returnMenuPrompt();
-        })
+        if (this.robot) {
+            console.log(chalk.yellow.underline.bold("\nPlease confirm you are not a robot"));
+            console.log(chalk.yellow("\nBy confirming, you agree to by " + buy + " " + name + ".\n"));
+            fs.readFile("./robot.txt", "utf8", (err, data) => {
+                let passwords = data.split(", ");
+                let whichPass = Math.floor(Math.random() * passwords.length);
+                inquirer.prompt({
+                    type: "input",
+                    name: "robot",
+                    message: "Enter in the word '" + chalk.green(passwords[whichPass]) + "'. Caps matter!"
+                }).then(answer => {
+                    if (answer.robot === passwords[whichPass]) {
+                        this.robot = false;
+                        clear();
+                        console.log(chalk.cyan("Congratulations on not being a robot"));
+                        quantity = parseFloat(quantity) - parseFloat(buy);
+                        sold = parseFloat(sold) + parseFloat(buy);
+                        let amtMade = parseFloat(sold) * parseFloat(price);
+                        profit = (parseFloat(profit) + parseFloat(amtMade)).toFixed(2);
+                        let sale = "UPDATE products SET quantity = ?, sold_units = ?, profit = ? WHERE item_id = ?"
+
+                        con.query(sale, [quantity, sold, profit, id], (err, result) => {
+                            if (err) throw err;
+                            console.log(chalk.green("\nThe total of your purchase is $" + amtMade.toFixed(2)));
+                            if (parseFloat(buy) === 1) {
+                                console.log(chalk.cyan("\nEnjoy your " + name + ".\n"))
+                            } else {
+                                console.log(chalk.cyan("\nEnjoy your order of " + buy + " units of the " + name + "\n"));
+                            }
+
+                            this.returnMenuPrompt();
+                        })
+                    } else {
+                        clear();
+                        console.log(chalk.cyan("\nCongratualtions on being a robot\n"));
+                        this.returnMenuPrompt();
+                    }
+                })
+            })
+        } else {
+            // not a robot section
+            console.log(chalk.cyan("Since you are a human or a clever robot, you just have to confirm your purchase\n"));
+            inquirer.prompt({
+                type: "confirm",
+                name: "confirm",
+                message: "You want to order " + buy + " " + name + "?"
+            }).then(answer => {
+                if (answer.confirm) {
+                    clear();
+                        quantity = parseFloat(quantity) - parseFloat(buy);
+                        sold = parseFloat(sold) + parseFloat(buy);
+                        let amtMade = parseFloat(sold) * parseFloat(price);
+                        profit = (parseFloat(profit) + parseFloat(amtMade)).toFixed(2);
+                        let sale = "UPDATE products SET quantity = ?, sold_units = ?, profit = ? WHERE item_id = ?"
+
+                        con.query(sale, [quantity, sold, profit, id], (err, result) => {
+                            if (err) throw err;
+                            console.log(chalk.green("\nThe total of your purchase is $" + amtMade.toFixed(2)));
+                            if (parseFloat(buy) === 1) {
+                                console.log(chalk.cyan("\nEnjoy your " + name + ".\n"))
+                            } else {
+                                console.log(chalk.cyan("\nEnjoy your order of " + buy + " units of the " + name + "\n"));
+                            }
+
+                            this.returnMenuPrompt();
+                        })
+                } else {
+                    console.log("\n")
+                    this.returnMenuPrompt();
+                }
+            }) 
+        }
+
 
     },
 
@@ -139,6 +206,7 @@ let store = {
     },
 
     backMenu: function () {
+        clear();
         con.query(this.sql.selectAll, (err, result) => {
             if (err) throw err;
             let data = [

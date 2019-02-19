@@ -162,7 +162,7 @@ let tyrant = {
         inquirer.prompt({
             type: "confirm",
             name: "make",
-            message: "Create a new department named " + chalk.green(name) + " that has an overhead cost of $" + chalk.red(overhead) + "?"
+            message: chalk.cyan("Create a new department named ") + chalk.green.underline(name) + chalk.cyan(" that has an overhead cost of ")+chalk.red.underline("$") + chalk.red.underline(overhead) + chalk.cyan("?")
         }).then(answer => {
             if (answer.make) {
                 con.query("INSERT INTO departments SET?", {
