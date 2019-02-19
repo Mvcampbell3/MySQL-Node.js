@@ -13,7 +13,6 @@ const con = database.createConnection({
     database: "bamazon"
 });
 
-
 let corporate = {
 
     idArray: [],

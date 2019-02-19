@@ -9,12 +9,13 @@ CREATE TABLE products (
     price DECIMAL(10, 2) NOT NULL,
     quantity INTEGER(5) DEFAULT 10,
     sold_units INTEGER(5) DEFAULT 0,
+    profit DECIMAL(10, 2) DEFAULT 0,
     PRIMARY KEY(item_id)
 );
 
 INSERT INTO products(product_name, department_name, price)
 VALUES
-("Spartan Kitchen Knife Set","Cookware", 185.95);
+("Spartan Kitchen Knife Set","Cookware", 185.95),
 ("Retro Hot Dog Pop-Up Toaster","Cookware", 19.99),
 ("Keyboard Waffle Iron","Cookware", 49.00),
 ("SUSOKI 8-in-1 Kitchen Tool Set","Cookware", 9.99),
@@ -27,4 +28,4 @@ VALUES
 ("Mint Toothpaste","Cosmetics", 4.75),
 ("Hair Gel","Cosmetics", 6.99),
 ("Old Spice Deodorant","Cosmetics", 3.99),
-("Head and Sholders Shampoo and Conditioner","Cosmetics", 5.50);
+("Head and Sholders Shampoo and Conditioner", "Cosmetics", 5.50);

@@ -1,10 +1,8 @@
-// Imports the stuff
 const inquirer = require("inquirer");
 const database = require("mysql");
 const { table } = require("table")
 const chalk = require("chalk");
 
-// connect variable, might move to inside object but it's fine out here in the wild for now
 const con = database.createConnection({
     host: 'localhost',
     user: "root",
@@ -14,11 +12,8 @@ const con = database.createConnection({
 
 let store = {
 
-    // Part of the gate which stops users from creating errs. 
     idArray: [],
 
-    // This is what is run to connect to the mysql database and display it to the screen in a table
-    // Then run the selectInventory function
     loadMenu: function () {
         con.connect(err => {
             if (err) throw err;
@@ -84,10 +79,6 @@ let store = {
         })
     },
 
-
-    // After the user makes a selection, this shows them just the info about the selection and asks them
-    // how much they would like to buy.
-    // carries info about the item along with it into updateQuantity function
     purchaseQuantity: function (id) {
         con.query("SELECT * FROM products WHERE item_id = ?",[id], (err, result) => {
             if (err) throw err;
@@ -114,10 +105,6 @@ let store = {
         })
     },
 
-    // This simply takes in all of the data from the user in purchase quantity and computes it
-    // Takes the remainder of the stock and updates the database quantity
-    // Tells the user how much their purchase was
-    // Asks them if they want to continue shopping
     updateQuantity: function (id, quantity, buy, price, name, sold, profit) {
         quantity = parseFloat(quantity) - parseFloat(buy);
         sold = parseFloat(sold) + parseFloat(buy);
@@ -135,8 +122,6 @@ let store = {
 
     },
 
-    // This will ask the user if they want to go back to the main menu
-    // Then runs appropriate response
     returnMenuPrompt: function () {
         inquirer.prompt({
             type: "confirm",
@@ -153,9 +138,6 @@ let store = {
         })
     },
 
-    // This function is the con query to go back to the main store screen
-    // Uses this in rest of program instead of connect because of too many handshakes, not enough sanitizer
-    // Ran inside of returnMenuPrompt and also when I want to send you back without asking beforehand
     backMenu: function () {
         con.query(this.sql.selectAll, (err, result) => {
             if (err) throw err;
@@ -179,15 +161,8 @@ let store = {
         })
     },
 
-    // Stores the mysql commands that interact with the database in con.query/connect functions
     sql: {
-
         selectAll: "SELECT * FROM products",
-
-        
-
-        // Do not use unless you mean it!
-        deleteTable: "DROP TABLE products",
     },
 }
 
