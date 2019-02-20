@@ -15,7 +15,7 @@ This installs all of the packages I used to create this application.<br>
 
 ##### These include: 
 
-1. **Mysql npm**, which allows for the interation with mysql databases.
+1. **Mysql npm**, which allows for the interaction with mysql databases.
 2. **Inquirer npm**, which gives the ability to ask and receive input from the user.
 3. **Table npm**, which takes data from mysql and other areas and places them into pretty tables.
 4. **Clear npm**, which clears the terminal.
