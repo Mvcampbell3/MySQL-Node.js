@@ -84,7 +84,7 @@ let tyrant = {
             con.query("SELECT departments.department_id, departments.department_name, departments.over_head_costs, SUM(products.profit) AS profit FROM products Right JOIN departments ON products.department_name = departments.department_name GROUP BY departments.department_name ORDER BY " + orderBy, (err, result) => {
                 if (err) throw err;
 
-                let data = [["Department ID", "Department Name", "Total Dept. Sales", "Overhead Costs", "Profit Margin"]];
+                let data = [[chalk.white("Department ID"), chalk.white("Department Name"), chalk.white("Total Dept. Sales"), chalk.white("Overhead Costs"), chalk.white("Profit Margin")]];
 
                 result.forEach(one => {
                     let margin = one.profit - one.over_head_costs;
@@ -94,7 +94,7 @@ let tyrant = {
                 });
 
                 let output = table(data);
-                console.log(output)
+                console.log(chalk.green(output));
                 this.returnMenuPrompt();
             })
         })
@@ -111,7 +111,7 @@ let tyrant = {
                 this.loadMenu();
                 return;
             } else {
-                console.log("Cya Later Gator");
+                console.log(chalk.cyan("\nHave a great day, boss\n"));
                 con.end();
             }
         })

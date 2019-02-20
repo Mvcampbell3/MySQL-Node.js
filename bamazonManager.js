@@ -15,11 +15,16 @@ const con = database.createConnection({
 
 let corporate = {
 
-    idArray: [],
+    idArray: [0],
 
     connectDatabase: function () {
         con.connect(err => {
-            this.loadMenu();
+            con.query("SELECT * FROM products", (err, result) => {
+                if (err) throw err;
+                result.forEach(one => this.idArray.push(one.item_id));
+                this.loadMenu();
+
+            })
         });
     },
 
@@ -64,19 +69,25 @@ let corporate = {
     },
 
     returnMenuPrompt: function () {
-        inquirer.prompt({
-            type: "confirm",
-            name: "back",
-            message: "Would you like to go back to the main menu?",
-            default: true
-        }).then(answer => {
-            if (answer.back) {
-                corporate.loadMenu();
-                return;
-            }
-            console.log("Enjoy the rest of your day!")
-            con.end();
+        this.idArray = [0];
+        con.query("SELECT * FROM products", (err, result) => {
+            if (err) throw err;
+            result.forEach(one => this.idArray.push(one.item_id));
+            inquirer.prompt({
+                type: "confirm",
+                name: "back",
+                message: "Would you like to go back to the main menu?",
+                default: true
+            }).then(answer => {
+                if (answer.back) {
+                    corporate.loadMenu();
+                    return;
+                }
+                console.log(chalk.cyan("\nEnjoy the rest of your day!"))
+                con.end();
+            })
         })
+
     },
 
     displayInventory: function (cb) {
@@ -150,24 +161,28 @@ let corporate = {
         inquirer.prompt({
             type: "input",
             name: "addInv",
-            message: "Which product would you like to add inventory? (Enter Product ID Number, 0 will return you to main menu)",
+            message: chalk.cyan("Which product would you like to add inventory? (Enter Product ID Number, 0 will return you to main menu)"),
+            validate: value => {
+                if (isNaN(parseFloat(value)) == true || corporate.idArray.indexOf(parseFloat(value)) == -1) {
+                    return ("Please enter in a valid ID or 0");
+                }
+
+                return true;
+            }
 
         }).then(answer => {
             if (answer.addInv == 0) {
                 corporate.loadMenu();
                 return;
-            } else if (corporate.idArray.indexOf(parseFloat(answer.addInv)) === -1) {
-                console.log("\nInvalid Product ID number\n");
-                corporate.addInventory();
-                return;
             } else {
                 corporate.orderInvScreen(answer.addInv)
-
             }
         })
     },
 
     orderInvScreen: function (id) {
+        clear();
+
         let data = [
             [chalk.yellow("Product ID"), chalk.yellow("Product Name"), chalk.yellow("Department"), chalk.yellow("Price"), chalk.yellow("Quantity")],
         ]
@@ -185,7 +200,7 @@ let corporate = {
                 name: "order",
                 message: "How many units would you like to buy?",
                 validate: (value) => {
-                    if (isNaN(value) == true || value == "") {
+                    if (isNaN(parseFloat(value)) == true || value == "" || parseFloat(value) < 0) {
                         return "Please enter the number of units you would like to order";
                     }
                     return true;
@@ -197,34 +212,49 @@ let corporate = {
     },
 
     makeOrder: function (id, name, start, add) {
-        let newQuantity = parseFloat(start) + parseFloat(add);
-        con.query("UPDATE products SET quantity = ? WHERE item_id = ?", [newQuantity, id], (err, result) => {
-            if (err) throw err;
-            console.log(chalk.cyan("\nYou have added " + add + " units of the product " + name + " to inventory!\n"));
+        console.log("\n")
+        inquirer.prompt({
+            type: "confirm",
+            name: "confirm",
+            message: "You want to order " + chalk.green(add) + " units of the product " + chalk.yellow(name) + "?"
+        }).then(answer => {
+            if (answer.confirm) {
+                let newQuantity = parseFloat(start) + parseFloat(add);
+                con.query("UPDATE products SET quantity = ? WHERE item_id = ?", [newQuantity, id], (err, result) => {
+                    if (err) throw err;
+                    clear();
+                    console.log(chalk.cyan("\nYou have added " + add + " units of the product " + name + " to inventory!\n"));
+                    
+                    inquirer.prompt({
+                        type: "list",
+                        name: "afterInventory",
+                        message: "Where would you like to go now?",
+                        choices: ["Add To Inventory", "View Low Inventory", "Back to the Main Menu"]
+                    }).then(answer => {
+                        
+                        switch (answer.afterInventory) {
+                            case "Add To Inventory":
+                                corporate.displayInventory(corporate.addInventory);
+                                break;
+                            case "View Low Inventory":
+                                corporate.lowInventory();
+                                break;
+                            case "Back to the Main Menu":
+                                corporate.loadMenu();
+                                break;
+                            default:
+                                console.log(chalk.red("Who what now? How did you get here"));
+                                console.log(answer.afterInventory)
+                        }
+                    })
 
-            inquirer.prompt({
-                type: "list",
-                name: "afterInventory",
-                message: "Where would you like to go now?",
-                choices: ["Add inventory menu", "View Low Inventory", "Back to the main menu"]
-            }).then(answer => {
-                switch (answer.afterInventory) {
-                    case "Add inventory menu":
-                        corporate.displayInventory(corporate.addInventory);
-                        break;
-                    case "View Low Inventory":
-                        corporate.lowInventory();
-                        break;
-                    case "Back to the main menu":
-                        corporate.loadMenu();
-                        break;
-                    default:
-                        console.log(chalk.red("Who what now? How did you get here"));
-                        console.log(answer.afterInventory)
-                }
-            })
-
+                })
+            } else {
+                console.log("\n")
+                this.returnMenuPrompt();
+            }
         })
+
     },
 
     newProductInformation: function () {

@@ -93,7 +93,7 @@ let store = {
                 name: "quantity",
                 message: chalk.cyan("How many " + result[0].product_name + " units would you like, there are " + result[0].quantity + " left (0 returns you to store menu)"),
                 validate: (value) => {
-                    if (isNaN(value) == true || value == "") {
+                    if (isNaN(value) == true || value == "" || value < 0) {
                         return "Please enter a number"
                     } else if (parseFloat(value) > result[0].quantity) {
                         return "There is only " + result[0].quantity + " " + result[0].product_name + " left in stock!"
